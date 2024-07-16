@@ -39,7 +39,7 @@ def trim_uxm_to_uint8(data, nr_bits):
 
 def ctool_wrap(pat, name, blocks_path, rates_cmd, view_full, verbose=False):
     if view_full:
-        cmd = f'zcat {pat}'
+        cmd = f'gzcat {pat}'
     else:
         cmd = f'{main_script} cview {pat} -L {blocks_path}'
     cmd += f' | {homog_tool} -b {blocks_path} -n {name} {rates_cmd}'
@@ -58,9 +58,10 @@ def homog_process(pat, blocks, args, outdir, prefix):
     if prefix is None:
         prefix = op.join(outdir, name)
     opath = prefix + '.uxm'
-    if not args.binary:
-        opath += '.bed.gz'
-    if not delete_or_skip(opath, args.force):
+    opath_bed = opath + '.bed.gz'
+
+    if (args.binary and not delete_or_skip(opath, args.force))\
+            or ((not args.binary or args.bed) and not delete_or_skip(opath_bed, args.force)):
         homog_log(f'skipping {name}. Use -f to overwrite')
         return
 
@@ -84,8 +85,8 @@ def homog_process(pat, blocks, args, outdir, prefix):
 
     if args.binary:
         trim_uxm_to_uint8(df[list('UXM')].values, args.nr_bits).tofile(opath)
-    else:
-        df.to_csv(opath, sep='\t', header=None, index=None)
+    if args.bed or not args.binary:
+        df.to_csv(opath_bed, sep='\t', header=None, index=None)
     return df
 
 
@@ -150,6 +151,7 @@ def parse_args():
     parser.add_argument('--force', '-f', action='store_true', help='Overwrite files if exist')
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--binary', action='store_true', help='Output binary files (uint8)')
+    parser.add_argument('--bed', action='store_true', help='Output bed files (uint8)')
     parser.add_argument('--genome', help='Genome reference name.')
     parser.add_argument('--nr_bits', type=int, default=8,
             help='For binary output, specify number of bits for the output format - 8 or 16. ' \
