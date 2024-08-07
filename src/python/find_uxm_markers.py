@@ -1,7 +1,6 @@
 from tqdm import tqdm
 from find_markers import *
 
-
 def load_group_file(groups_file, betas):
     validate_single_file(groups_file)
     validate_file_list(betas)
